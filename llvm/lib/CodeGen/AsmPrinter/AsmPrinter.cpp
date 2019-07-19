@@ -1012,6 +1012,17 @@ static bool needFuncLabelsForEHOrDebugInfo(const MachineFunction &MF,
 
 /// EmitFunctionBody - This method emits the body and trailer for a
 /// function.
+
+int getMemLocation(const MachineInstr *MI) {
+	int i = 0;
+	for (auto MO = MI->getDesc().OpInfo; MO != NULL; MO++) {
+		if (MO->OperandType == MCOI::OPERAND_MEMORY)
+			return i;
+		i++;
+	}
+	return -1;
+}
+
 void AsmPrinter::EmitFunctionBody() {
   EmitFunctionHeader();
 

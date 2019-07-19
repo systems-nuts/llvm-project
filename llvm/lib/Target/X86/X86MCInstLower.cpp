@@ -43,8 +43,17 @@
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/MC/MCSymbolELF.h"
 #include "llvm/Target/TargetLoweringObjectFile.h"
+#include "llvm/Support/Debug.h"
 
 using namespace llvm;
+
+static cl::opt<bool> generateSegmentScheme(
+	"generate-segment-scheme", cl::init(false),
+	cl::desc("Enable Segment scheme for protecting memory accesses instead of checks"));
+
+static cl::opt<bool> invertSegmentNames(
+	"invert-segment-names", cl::init(false),
+	cl::desc("Flips the segments used for public and private section"));
 
 namespace {
 
@@ -71,6 +80,8 @@ private:
 };
 
 } // end anonymous namespace
+
+int getMemLocation(const MachineInstr *MI);
 
 // Emit a minimal sequence of nops spanning NumBytes bytes.
 static void EmitNops(MCStreamer &OS, unsigned NumBytes, bool Is64Bit,
@@ -429,11 +440,119 @@ X86MCInstLower::LowerMachineOperand(const MachineInstr *MI,
 
 void X86MCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
   OutMI.setOpcode(MI->getOpcode());
+  
+// START Antonio --------------------------------------------------------------
+  int fixed_reg = 0;
+  int fixed_seg = 0;
+  int i = 0;
+  int index = getMemLocation(MI); // implemented by ConfLLVM, tells what is the first memory operand
+  unsigned opcode = MI->getOpcode();
+  int abort_segment_scheme = 0;
+  
+  // this is from the main code of LLVM, probably is doing the same, i.e. searching the first memory operand
+  
+  const MCInstrDesc &Descl = MI->getDesc();
+  int operandNo = X86II::getMemoryOperandNo(Descl.TSFlags); // if -1 error
+  int operandBias = X86II::getOperandBias(Descl);
+  
+  if (opcode == X86::LEA64r || opcode == X86::LEA16r || opcode == X86::LEA32r || opcode == X86::LEA64_32r)
+    index = 1;
+  
+  const TargetRegisterInfo* TRI = MI->getParent()->getParent()->getSubtarget().getRegisterInfo(); // why double parent?
+  int subregidx = TRI->getSubRegIndex(X86::RAX, X86::EAX); 
+  
+  if (generateSegmentScheme) {
+    //what if there are multiple memory operands? Just a check here
+/*    int mem_ops = -1;
+    for (auto mMO = MI->getDesc().OpInfo; mMO != NULL; mMO++) { // it seems that mMO != NULL is not correct
+        
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " " << mMO << "\n");
+#undef DEBUG_TYPE        
+        
+      if (mMO->OperandType == MCOI::OPERAND_MEMORY)
+            mem_ops++;
+    } */
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " gen-seg-scheme opcode: " << opcode << " operands: " << MI->getNumOperands() << " memNo: " << index << " operandNo: " << operandNo << " operandBias: " << operandBias << "\n");
+#undef DEBUG_TYPE    
+  }
+// END Antonio ----------------------------------------------------------------
 
-  for (const MachineOperand &MO : MI->operands())
-    if (auto MaybeMCOp = LowerMachineOperand(MI, MO))
+  for (const MachineOperand &MO : MI->operands()) {
+// START Antonio --------------------------------------------------------------    
+    MachineOperand new_MO = MO;
+    new_MO.clearParent();
+    
+    if (generateSegmentScheme && !abort_segment_scheme) {
+      unsigned __opcode = MI->getOpcode();
+
+      if (__opcode != opcode) { //NOTE: it never changes, I don't know why they did this
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " opcode changed " << opcode << " != " << __opcode << "\n");
+#undef DEBUG_TYPE              
+      }
+      
+      // http://llvm.org/doxygen/X86BaseInfo_8h_source.html
+      if (__opcode != X86::LEA64r && __opcode != X86::LEA32r && __opcode != X86::LEA16r && __opcode != X86::LEA64_32r && !MI->memoperands_empty()) {
+        if ( (index + X86::AddrSegmentReg) == i) { // it was "index +4"
+          fixed_reg = 1;
+          if (!invertSegmentNames)
+            new_MO.setReg(X86::GS);
+          else
+            new_MO.setReg(X86::FS);
+        }
+        else if ((index + X86::AddrBaseReg == i) || (index + X86::AddrIndexReg == i)) { // it was "index +0" and "index +2"
+          fixed_seg = 1;
+          unsigned reg = new_MO.getReg();
+          
+          if (reg != X86::NoRegister) {
+            int size = -1; //TRI->getMinimalPhysRegClass(reg)->MC->getSize(); THIS DOESN'T EXIST ANYMORE
+            const TargetRegisterClass * TRC = TRI->getMinimalPhysRegClass(reg); // https://llvm.org/doxygen/classllvm_1_1TargetRegisterInfo.html
+            size = (TRI->getRegSizeInBits(*TRC) / 8);
+            
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " reg: " << reg << " subregidx: " << subregidx << " i: " << i << " TRC RegsSize: " << TRC->MC->RegsSize << " RegSetSize: " <<
+    TRC->MC->RegSetSize << " RegSizeInBits: " << TRI->getRegSizeInBits(*TRC) << "\n"); // https://llvm.org/doxygen/TargetRegisterInfo_8h_source.html#l00083
+#undef DEBUG_TYPE 
+    // some registers information at https://llvm.org/doxygen/X86MCTargetDesc_8h_source.html#l00049
+              
+          if (reg == X86::RSP || reg == X86::RBP) { // need to add ESP, EBP, SP, BP??? TODO
+              abort_segment_scheme = 1;
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " abort_segment_scheme reg: " << reg << " RSP id: " << X86::RSP << " RBP id: " << X86::RBP << "\n");
+#undef DEBUG_TYPE 
+              goto do_abort_segment_scheme;
+          }
+    
+/*            if (size == 8) {
+              unsigned long _register = TRI->getSubReg(reg, subregidx);
+              new_MO.setReg(_register);
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " new reg: " << _register << "\n");
+#undef DEBUG_TYPE 
+            }*/
+          }
+        }
+      }
+    }
+do_abort_segment_scheme:
+      
+    i++;
+// END Antonio ----------------------------------------------------------------      
+    if (auto MaybeMCOp = LowerMachineOperand(MI, new_MO)) //if (auto MaybeMCOp = LowerMachineOperand(MI, MO))
       OutMI.addOperand(MaybeMCOp.getValue());
+  }
 
+// START Antonio --------------------------------------------------------------
+/*
+ * Original code from ConfLLVM, we don't use it because we don't do use the 4GB windows
+  if (fixed_reg != fixed_seg) {
+    errs() << "ERROR WHILE FIXING REGISTERS AND SEGMENTS " << fixed_reg << "::" << fixed_seg;
+  }
+  */
+// END Antonio ----------------------------------------------------------------      
+  
   // Handle a few special cases to eliminate operand modifiers.
   switch (OutMI.getOpcode()) {
   case X86::LEA64_32r:
