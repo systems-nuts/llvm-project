@@ -516,7 +516,8 @@ void X86MCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
     TRC->MC->RegSetSize << " RegSizeInBits: " << TRI->getRegSizeInBits(*TRC) << "\n"); // https://llvm.org/doxygen/TargetRegisterInfo_8h_source.html#l00083
 #undef DEBUG_TYPE 
     // some registers information at https://llvm.org/doxygen/X86MCTargetDesc_8h_source.html#l00049
-              
+
+#ifdef FIX_STACK_BASE_POINTER              
           if (reg == X86::RSP || reg == X86::RBP) { // need to add ESP, EBP, SP, BP??? TODO
               abort_segment_scheme = 1;
 #define DEBUG_TYPE "foo"
@@ -524,14 +525,15 @@ void X86MCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
 #undef DEBUG_TYPE 
               goto do_abort_segment_scheme;
           }
+#endif
     
-/*            if (size == 8) {
+            if (size == 8) {
               unsigned long _register = TRI->getSubReg(reg, subregidx);
               new_MO.setReg(_register);
 #define DEBUG_TYPE "foo"
     LLVM_DEBUG(dbgs() << __func__ << " new reg: " << _register << "\n");
 #undef DEBUG_TYPE 
-            }*/
+            }
           }
         }
       }
