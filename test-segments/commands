@@ -1,0 +1,1 @@
+clang -S hello_pierre.c -mllvm --generate-segment-scheme -mllvm -debug
