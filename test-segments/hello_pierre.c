@@ -11,6 +11,15 @@ struct gigi {
 struct gigi la_trottola;
 
 
+long simple (int *e, unsigned long f) {
+    int simple = *e;
+    long ret = simple + f;
+
+    __asm__ volatile ("nop\n");
+    void* ref = &simple;
+    return ret;
+}
+
 
 int bar (int *c, unsigned long *d) {
     *c = 9876;
@@ -34,6 +43,8 @@ int foo (int *a, int *b) {
     __asm__ volatile ("nop\n");
     aa = (int *) sgigi->sa;
     sgigi->sa = &pierino; // this is a reference to the stack -- unsafe
+
+    ula = simple(aa, pierino);
     
     return *a;
 }
