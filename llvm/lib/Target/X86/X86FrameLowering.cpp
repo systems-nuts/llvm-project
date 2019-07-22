@@ -1146,6 +1146,16 @@ void X86FrameLowering::emitPrologue(MachineFunction &MF,
           .addReg(StackPtr)
           .setMIFlag(MachineInstr::FrameSetup);
 
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " Framepointer "<< Fn << "\n");
+#undef DEBUG_TYPE
+      //TODO add checks
+      BuildMI(MBB, MBBI, DL,
+              TII.get(X86::ADD64rr), FramePtr)
+          .addReg(FramePtr)
+          .addImm(0x00) //.addReg(StackPtr)
+          .setMIFlag(MachineInstr::FrameSetup); 
+
       if (NeedsDwarfCFI) {
         // Mark effective beginning of when frame pointer becomes valid.
         // Define the current CFA to use the EBP/RBP register.
@@ -1442,6 +1452,10 @@ void X86FrameLowering::emitPrologue(MachineFunction &MF,
   if (IsFunclet && STI.is32Bit())
     return;
 
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " setupBasePointer(MF) " << "\n");
+#undef DEBUG_TYPE 
+
   // If we need a base pointer, set it up here. It's whatever the value
   // of the stack pointer is at this point. Any variable size objects
   // will be allocated after this, so we can still use the base pointer
@@ -1452,6 +1466,11 @@ void X86FrameLowering::emitPrologue(MachineFunction &MF,
     BuildMI(MBB, MBBI, DL, TII.get(Opc), BasePtr)
       .addReg(SPOrEstablisher)
       .setMIFlag(MachineInstr::FrameSetup);
+
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " hasBasePointer(MF) " << "\n"); //Fn << "\n");
+#undef DEBUG_TYPE 
+
     if (X86FI->getRestoreBasePointer()) {
       // Stash value of base pointer.  Saving RSP instead of EBP shortens
       // dependence chain. Used by SjLj EH.
@@ -1460,6 +1479,9 @@ void X86FrameLowering::emitPrologue(MachineFunction &MF,
                    FramePtr, true, X86FI->getRestoreBasePointerOffset())
         .addReg(SPOrEstablisher)
         .setMIFlag(MachineInstr::FrameSetup);
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " getRestoreBasePointer " << "\n"); //X86FI << "\n");
+#undef DEBUG_TYPE 
     }
 
     if (X86FI->getHasSEHFramePtrSave() && !IsFunclet) {
@@ -1475,6 +1497,11 @@ void X86FrameLowering::emitPrologue(MachineFunction &MF,
       addRegOffset(BuildMI(MBB, MBBI, DL, TII.get(Opm)), UsedReg, true, Offset)
           .addReg(FramePtr)
           .setMIFlag(MachineInstr::FrameSetup);
+
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " hasSEHFramePtrSave " << "\n"); // X86FI << "\n");
+#undef DEBUG_TYPE 
+
     }
   }
 

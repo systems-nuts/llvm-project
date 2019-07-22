@@ -67,6 +67,7 @@ int main (int argc, char* argv [] ) {
   unsigned long aaa_offset = ADJUST_GS_BASE(&aaa);
   unsigned long value =-1;
   __asm__ volatile ("movq %1, %%r8\n"
+                    //"movq %%gs:0x00, %%r9\n" //was for test and it compile
                     "movq %%gs:(%%r8), %%r9\n"
                     "movq %%r9, %0\n"
                     : "=r" (value) : "r" (aaa_offset) : "%r8", "%r9");
