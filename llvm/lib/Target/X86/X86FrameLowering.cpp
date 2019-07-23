@@ -34,6 +34,10 @@
 
 using namespace llvm;
 
+static cl::opt<bool> segmentFramePointer(
+        "segment-frame-pointer", cl::init(false),
+        cl::desc("The framepointer is segment relative (gs or fs)"));
+
 X86FrameLowering::X86FrameLowering(const X86Subtarget &STI,
                                    unsigned StackAlignOverride)
     : TargetFrameLowering(StackGrowsDown, StackAlignOverride,
@@ -1146,6 +1150,7 @@ void X86FrameLowering::emitPrologue(MachineFunction &MF,
           .addReg(StackPtr)
           .setMIFlag(MachineInstr::FrameSetup);
 
+if (segmentFramePointer) {
 #define DEBUG_TYPE "foo"
 MachineFunction *MF = MBB.getParent();
 unsigned SSFISize = 8; //Op.getValueSizeInBits() / 8;
@@ -1166,14 +1171,14 @@ NoInfo, MachineMemOperand::MOStore, 2, 2);
 */
       BuildMI(MBB, MBBI, DL,
               TII.get(X86::ADD64rm), FramePtr)
-          .addReg(FramePtr)
-	  .addReg(0) //addReg(X86::RAX)
+          .addReg(FramePtr) //Tie register
+	  .addReg(X86::RAX)
           .addImm(0x00) //.addReg(X86::RAX)//.addReg(StackPtr) -- cannot add more registers
 	  .addReg(0)
           .addImm(0)
           .addReg(X86::GS)
           .setMIFlag(MachineInstr::FrameSetup); 
-
+}
 
       if (NeedsDwarfCFI) {
         // Mark effective beginning of when frame pointer becomes valid.
