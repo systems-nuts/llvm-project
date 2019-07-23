@@ -1147,14 +1147,33 @@ void X86FrameLowering::emitPrologue(MachineFunction &MF,
           .setMIFlag(MachineInstr::FrameSetup);
 
 #define DEBUG_TYPE "foo"
-    LLVM_DEBUG(dbgs() << __func__ << " Framepointer "<< Fn << "\n");
+MachineFunction *MF = MBB.getParent();
+unsigned SSFISize = 8; //Op.getValueSizeInBits() / 8;
+int SSFI = MF->getFrameInfo().CreateStackObject(SSFISize, SSFISize, false);
+MachinePointerInfo NoInfo;
+MachineMemOperand *MMO = MF->getMachineMemOperand(//MachinePointerInfo::getFixedStack(*MF, SSFI), MachineMemOperand::MOStore, 2, 2);
+NoInfo, MachineMemOperand::MOStore, 2, 2);
+
+    LLVM_DEBUG(dbgs() << __func__ << " Framepointer "<< Fn << " MMO " << *MMO <<"\n");
 #undef DEBUG_TYPE
       //TODO add checks
+/* this works but ... is not what I need
       BuildMI(MBB, MBBI, DL,
               TII.get(X86::ADD64rr), FramePtr)
           .addReg(FramePtr)
-          .addImm(0x00) //.addReg(StackPtr)
+          .addImm(0x00) //.addReg(X86::RAX)//.addReg(StackPtr) -- cannot add more registers
           .setMIFlag(MachineInstr::FrameSetup); 
+*/
+      BuildMI(MBB, MBBI, DL,
+              TII.get(X86::ADD64rm), FramePtr)
+          .addReg(FramePtr)
+	  .addReg(X86::RAX)
+          .addImm(0x00) //.addReg(X86::RAX)//.addReg(StackPtr) -- cannot add more registers
+	  .addReg(0)
+          .addImm(0)
+          .addReg(X86::GS)
+          .setMIFlag(MachineInstr::FrameSetup); 
+
 
       if (NeedsDwarfCFI) {
         // Mark effective beginning of when frame pointer becomes valid.
