@@ -114,6 +114,11 @@ public:
                      int ImmOffset = 0) const;
 
   static uint8_t ModRMByte(unsigned Mod, unsigned RegOpcode, unsigned RM) {
+    if (!(Mod < 4 && RegOpcode < 8 && RM < 8)) {
+#define DEBUG_TYPE "foo"
+      LLVM_DEBUG(dbgs() << __func__ << " Mod(SS) " << Mod << " RegOpc(Id) " << RegOpcode << " RM(Base) " << RM << "\n");
+#undef DEBUG_TYPE   
+    }
     assert(Mod < 4 && RegOpcode < 8 && RM < 8 && "ModRM Fields out of range!");
     return RM | (RegOpcode << 3) | (Mod << 6);
   }

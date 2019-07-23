@@ -1159,7 +1159,7 @@ MachinePointerInfo NoInfo;
 MachineMemOperand *MMO = MF->getMachineMemOperand(//MachinePointerInfo::getFixedStack(*MF, SSFI), MachineMemOperand::MOStore, 2, 2);
 NoInfo, MachineMemOperand::MOStore, 2, 2);
 
-    LLVM_DEBUG(dbgs() << __func__ << " Framepointer "<< Fn << " MMO " << *MMO <<"\n");
+    LLVM_DEBUG(dbgs() << __func__ << " Framepointer "<< Fn << " MMO " << *MMO << " add " << X86::ADD64rm << "\n");
 #undef DEBUG_TYPE
       //TODO add checks
 /* this works but ... is not what I need
@@ -1172,10 +1172,10 @@ NoInfo, MachineMemOperand::MOStore, 2, 2);
       BuildMI(MBB, MBBI, DL,
               TII.get(X86::ADD64rm), FramePtr)
           .addReg(FramePtr) //Tie register
-	  .addReg(X86::RAX)
-          .addImm(0x00) //.addReg(X86::RAX)//.addReg(StackPtr) -- cannot add more registers
-	  .addReg(0)
-          .addImm(0)
+	  .addReg(X86::NoRegister) //.addReg(X86::RAX)
+          .addImm(1)
+	  .addReg(X86::NoRegister)
+          .addImm(0x00)
           .addReg(X86::GS)
           .setMIFlag(MachineInstr::FrameSetup); 
 }
