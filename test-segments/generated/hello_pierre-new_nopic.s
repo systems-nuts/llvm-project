@@ -10,7 +10,7 @@ simple:                                 # @simple
 	.cfi_def_cfa_offset 16
 	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
-	addq	%gs:0, %rbp
+	subq	%gs:0, %rbp
 	.cfi_def_cfa_register %rbp
 	movq	%rdi, %gs:-8(%rbp)
 	movq	%rsi, %gs:-16(%rbp)
@@ -44,7 +44,7 @@ bar:                                    # @bar
 	.cfi_def_cfa_offset 16
 	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
-	addq	%gs:0, %rbp
+	subq	%gs:0, %rbp
 	.cfi_def_cfa_register %rbp
 	movq	%rdi, %gs:-8(%rbp)
 	movq	%rsi, %gs:-16(%rbp)
@@ -70,7 +70,7 @@ foo:                                    # @foo
 	.cfi_def_cfa_offset 16
 	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
-	addq	%gs:0, %rbp
+	subq	%gs:0, %rbp
 	.cfi_def_cfa_register %rbp
 	subq	$64, %rsp
 	movq	%rdi, %gs:-8(%rbp)
@@ -122,7 +122,7 @@ foo:                                    # @foo
 	.type	la_trottola,@object     # @la_trottola
 	.comm	la_trottola,24,8
 
-	.ident	"clang version 10.0.0 (https://github.com/systems-nuts/llvm-project.git f9abb8c6a09e6799a26e39272cc1855d47b1e240)"
+	.ident	"clang version 10.0.0 (https://github.com/systems-nuts/llvm-project.git fed943e9db66f85fc9818227585046bcf5d101b6)"
 	.section	".note.GNU-stack","",@progbits
 	.addrsig
 	.addrsig_sym simple

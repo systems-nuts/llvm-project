@@ -1170,7 +1170,7 @@ NoInfo, MachineMemOperand::MOStore, 2, 2);
           .setMIFlag(MachineInstr::FrameSetup); 
 */
       BuildMI(MBB, MBBI, DL,
-              TII.get(X86::ADD64rm), FramePtr)
+              TII.get(X86::SUB64rm), FramePtr)
           .addReg(FramePtr) //Tie register
 	  .addReg(X86::NoRegister) //.addReg(X86::RAX)
           .addImm(1)

@@ -1,1 +1,2 @@
 clang -S hello_pierre.c -mllvm --generate-segment-scheme -mllvm -debug
+clang -c hello_pierre.c -mllvm --generate-segment-scheme -mllvm --segment-frame-pointer -mllvm --debug

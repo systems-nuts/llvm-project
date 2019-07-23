@@ -37,7 +37,8 @@ int main (int argc, char* argv [] ) {
   unsigned long krn_gs_base =-1;
   gs_base= (unsigned long*) data_section_start;    
   // todo we need an heap allocator gs based
-    
+  
+  __data_start = (unsigned long)&__data_start;  
   printf(" 0x%lx 0x%lx 0x%lx\n",
          (unsigned long)&__data_start, (unsigned long)&_end, (unsigned long)gs_base);
   
