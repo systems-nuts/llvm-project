@@ -1167,7 +1167,7 @@ NoInfo, MachineMemOperand::MOStore, 2, 2);
       BuildMI(MBB, MBBI, DL,
               TII.get(X86::ADD64rm), FramePtr)
           .addReg(FramePtr)
-	  .addReg(X86::RAX)
+	  .addReg(0) //addReg(X86::RAX)
           .addImm(0x00) //.addReg(X86::RAX)//.addReg(StackPtr) -- cannot add more registers
 	  .addReg(0)
           .addImm(0)

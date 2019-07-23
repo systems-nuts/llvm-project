@@ -529,7 +529,7 @@ void X86MCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
     
             if (size == 8) {
               unsigned long _register = TRI->getSubReg(reg, subregidx);
-              new_MO.setReg(_register);
+//              new_MO.setReg(_register);
 #define DEBUG_TYPE "foo"
     LLVM_DEBUG(dbgs() << __func__ << " new reg: " << _register << "\n");
 #undef DEBUG_TYPE 
