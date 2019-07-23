@@ -8,6 +8,7 @@ struct gigi {
     unsigned long * sb;
 };
 
+//__attribute__((address_space(256))) //256 is GS relative -- we can modify 
 struct gigi la_trottola;
 
 
@@ -31,7 +32,7 @@ int bar (int *c, unsigned long *d) {
 int foo (int *a, int *b) {
     unsigned long ula = *a;
     int *aa = b;
-    struct gigi *sgigi = &la_trottola;
+    struct gigi *sgigi = (void *)&la_trottola;
 
     unsigned long pierino = -1;
     bar (a, &pierino);
