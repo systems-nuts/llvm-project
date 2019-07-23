@@ -1,5 +1,5 @@
 
-./test_gs:     file format elf64-x86-64
+test_gs:     file format elf64-x86-64
 
 
 Disassembly of section .init:
@@ -362,6 +362,7 @@ int main (int argc, char* argv [] ) {
   4008b5:	48 c7 45 80 ff ff ff 	movq   $0xffffffffffffffff,-0x80(%rbp)
   4008bc:	ff 
   __asm__ volatile ("movq %1, %%r8\n"
+                    //"addq %%gs:0x00, %%r9\n" //was for test and it compile
                     "movq %%gs:(%%r8), %%r9\n"
                     "movq %%r9, %0\n"
                     : "=r" (value) : "r" (aaa_offset) : "%r8", "%r9");
