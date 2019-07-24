@@ -598,6 +598,10 @@ bool X86InstructionSelector::selectGlobalValue(MachineInstr &I,
   assert((I.getOpcode() == TargetOpcode::G_GLOBAL_VALUE) &&
          "unexpected instruction");
 
+//#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " " << I << "\n");
+//#undef DEBUG_TYPE   
+
   auto GV = I.getOperand(1).getGlobal();
   if (GV->isThreadLocal()) {
     return false; // TODO: we don't support TLS yet.

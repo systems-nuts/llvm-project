@@ -9,8 +9,10 @@ struct gigi {
 };
 
 //__attribute__((address_space(256))) //256 is GS relative -- we can modify 
-struct gigi la_trottola;
-
+//static // lea 0x0(%%rip), REG -- with PIC or PIE
+struct gigi la_trottola; // mov 0x0(%%rip), REG -- with PIC
+			 // lea 0x0(%%rip), REG -- with PIE
+			 // movabs 0x0, REG -- no PIC, no PIE
 
 long simple (int *e, unsigned long f) {
     int simple = *e;
