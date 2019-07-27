@@ -7493,6 +7493,9 @@ namespace {
               .addReg(0)
               .addExternalSymbol("_GLOBAL_OFFSET_TABLE_")
               .addReg(0);
+
+ LLVM_DEBUG(dbgs() << __func__ << " medium code model RIP-rela LEA" << '\n');
+
         } else if (TM->getCodeModel() == CodeModel::Large) {
           // In the large code model, we are aiming for this code, though the
           // register allocation may vary:
@@ -7516,6 +7519,9 @@ namespace {
           BuildMI(FirstMBB, MBBI, DL, TII->get(X86::ADD64rr), PC)
               .addReg(PBReg, RegState::Kill)
               .addReg(GOTReg, RegState::Kill);
+
+ LLVM_DEBUG(dbgs() << __func__ << " large code model RIP-rela LEA/MOV/ADD" << '\n');
+
         } else {
           llvm_unreachable("unexpected code model");
         }
@@ -7533,6 +7539,9 @@ namespace {
               .addReg(PC)
               .addExternalSymbol("_GLOBAL_OFFSET_TABLE_",
                                  X86II::MO_GOT_ABSOLUTE_ADDRESS);
+
+ LLVM_DEBUG(dbgs() << __func__ << " code model mov pc to stack" << '\n');
+
         }
       }
 

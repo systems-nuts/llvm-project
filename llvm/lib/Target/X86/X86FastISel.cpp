@@ -40,7 +40,14 @@
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Target/TargetOptions.h"
+
+#include "llvm/Support/Debug.h"
+
 using namespace llvm;
+
+static cl::opt<bool> genSegGlobals(
+        "generate-segment-globals", cl::init(false),
+        cl::desc("The globals are segment based (gs or fs)"));
 
 namespace {
 
@@ -149,6 +156,7 @@ private:
   unsigned X86MaterializeFP(const ConstantFP *CFP, MVT VT);
   unsigned X86MaterializeGV(const GlobalValue *GV, MVT VT);
   unsigned fastMaterializeConstant(const Constant *C) override;
+  unsigned fastMaterializeGV(const GlobalValue *GV, MVT VT, unsigned Reg) override;
 
   unsigned fastMaterializeAlloca(const AllocaInst *C) override;
 
@@ -739,6 +747,10 @@ bool X86FastISel::handleConstantAddresses(const Value *V, X86AddressMode &AM) {
       // Allow the subtarget to classify the global.
       unsigned char GVFlags = Subtarget->classifyGlobalReference(GV);
 
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " GLOBAL Global global " << *V << " flags " << GVFlags << "\n");
+#undef DEBUG_TYPE   
+
       // If this reference is relative to the pic base, set it now.
       if (isGlobalRelativeToPICBase(GVFlags)) {
         // FIXME: How do we know Base.Reg is free??
@@ -792,6 +804,22 @@ bool X86FastISel::handleConstantAddresses(const Value *V, X86AddressMode &AM) {
           BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, TII.get(Opc), LoadReg);
         addFullAddress(LoadMI, StubAM);
 
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " GLOBAL Global global MAP " << *V << " flags " << GVFlags << "\n");
+#undef DEBUG_TYPE 
+
+/*
+if(genSegGlobals) {
+      BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc,
+              TII.get(X86::SUB64rm), LoadReg)
+          .addReg(LoadReg) //Tie register
+          .addReg(X86::NoRegister) //.addReg(X86::RAX)
+          .addImm(1)
+          .addReg(X86::NoRegister)
+          .addImm(0x00)
+          .addReg(X86::GS);
+}
+*/
         // Ok, back to normal mode.
         leaveLocalValueArea(SaveInsertPt);
 
@@ -1045,6 +1073,10 @@ bool X86FastISel::X86SelectCallAddress(const Value *V, X86AddressMode &AM) {
       return X86SelectCallAddress(U->getOperand(0), AM);
     break;
   }
+
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " going to handle constant addresses GLOBAL Global global " << "\n");
+#undef DEBUG_TYPE   
 
   // Handle constant address.
   if (const GlobalValue *GV = dyn_cast<GlobalValue>(V)) {
@@ -3803,10 +3835,35 @@ unsigned X86FastISel::X86MaterializeFP(const ConstantFP *CFP, MVT VT) {
   return ResultReg;
 }
 
+unsigned X86FastISel::fastMaterializeGV(const GlobalValue *GV, MVT VT, unsigned Reg) {
+
+if(genSegGlobals) { //Antonio
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " GLOBAL Global global GS adding" << *GV << "\n");
+#undef DEBUG_TYPE
+
+//      unsigned ResultReg = createResultReg(TLI.getRegClassFor(VT));
+
+      BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc,
+              TII.get(X86::SUB64rm), Reg) //AM.Base.Reg)
+          .addReg(Reg) //AM.Base.Reg) //Tie register
+          .addReg(X86::NoRegister) //.addReg(X86::RAX)
+          .addImm(1)
+          .addReg(X86::NoRegister)
+          .addImm(0x00)
+          .addReg(X86::GS);
+}
+      return Reg;
+}
+
 unsigned X86FastISel::X86MaterializeGV(const GlobalValue *GV, MVT VT) {
   // Can't handle alternate code models yet.
   if (TM.getCodeModel() != CodeModel::Small)
     return 0;
+
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " GLOBAL Global global " << *GV << "\n");
+#undef DEBUG_TYPE
 
   // Materialize addresses with LEA/MOV instructions.
   X86AddressMode AM;
@@ -3814,8 +3871,26 @@ unsigned X86FastISel::X86MaterializeGV(const GlobalValue *GV, MVT VT) {
     // If the expression is just a basereg, then we're done, otherwise we need
     // to emit an LEA.
     if (AM.BaseType == X86AddressMode::RegBase &&
-        AM.IndexReg == 0 && AM.Disp == 0 && AM.GV == nullptr)
+        AM.IndexReg == 0 && AM.Disp == 0 && AM.GV == nullptr) {
+
+if(genSegGlobals) { //Antonio
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " GLOBAL Global global GS adding" << *GV << "\n");
+#undef DEBUG_TYPE
+
+/*      unsigned ResultReg = createResultReg(TLI.getRegClassFor(VT));
+
+      BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc,
+              TII.get(X86::SUB64rm), ResultReg) //AM.Base.Reg)
+          .addReg(ResultReg) //AM.Base.Reg) //Tie register
+          .addReg(X86::NoRegister) //.addReg(X86::RAX)
+          .addImm(1)
+          .addReg(X86::NoRegister)
+          .addImm(0x00)
+          .addReg(X86::GS);*/
+}
       return AM.Base.Reg;
+    }
 
     unsigned ResultReg = createResultReg(TLI.getRegClassFor(VT));
     if (TM.getRelocationModel() == Reloc::Static &&
@@ -3825,6 +3900,22 @@ unsigned X86FastISel::X86MaterializeGV(const GlobalValue *GV, MVT VT) {
       BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, TII.get(X86::MOV64ri),
               ResultReg)
         .addGlobalAddress(GV);
+
+if(genSegGlobals) { //Antonio
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " GLOBAL Global global MOV adding" << "\n");
+#undef DEBUG_TYPE
+/*
+      BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc,
+              TII.get(X86::SUB64rm), ResultReg)
+          .addReg(ResultReg) //Tie register
+          .addReg(X86::NoRegister) //.addReg(X86::RAX)
+          .addImm(1)
+          .addReg(X86::NoRegister)
+          .addImm(0x00)
+          .addReg(X86::GS);*/
+}
+
     } else {
       unsigned Opc =
           TLI.getPointerTy(DL) == MVT::i32
@@ -3832,6 +3923,22 @@ unsigned X86FastISel::X86MaterializeGV(const GlobalValue *GV, MVT VT) {
               : X86::LEA64r;
       addFullAddress(BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc,
                              TII.get(Opc), ResultReg), AM);
+
+if(genSegGlobals) { //Antonio
+#define DEBUG_TYPE "foo"
+    LLVM_DEBUG(dbgs() << __func__ << " GLOBAL Global global LEA adding" << "\n");
+#undef DEBUG_TYPE
+/*
+      BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc,
+              TII.get(X86::SUB64rm), ResultReg)
+          .addReg(ResultReg) //Tie register
+          .addReg(X86::NoRegister) //.addReg(X86::RAX)
+          .addImm(1)
+          .addReg(X86::NoRegister)
+          .addImm(0x00)
+          .addReg(X86::GS);*/
+}
+
     }
     return ResultReg;
   }

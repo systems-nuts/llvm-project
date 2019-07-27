@@ -480,6 +480,8 @@ protected:
   /// constant pool loads.
   virtual unsigned fastMaterializeConstant(const Constant *C) { return 0; }
 
+  virtual unsigned fastMaterializeGV(const GlobalValue *GV, MVT VT, unsigned Reg) {return 0;}
+
   /// Emit an alloca address in a register using target-specific logic.
   virtual unsigned fastMaterializeAlloca(const AllocaInst *C) { return 0; }
 

@@ -599,7 +599,7 @@ bool X86InstructionSelector::selectGlobalValue(MachineInstr &I,
          "unexpected instruction");
 
 //#define DEBUG_TYPE "foo"
-    LLVM_DEBUG(dbgs() << __func__ << " " << I << "\n");
+    LLVM_DEBUG(dbgs() << __func__ << " GLOBAL Global global " << I << "\n");
 //#undef DEBUG_TYPE   
 
   auto GV = I.getOperand(1).getGlobal();

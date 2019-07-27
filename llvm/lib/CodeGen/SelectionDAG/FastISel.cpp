@@ -402,6 +402,9 @@ unsigned FastISel::getRegForValue(const Value *V) {
 
 unsigned FastISel::materializeConstant(const Value *V, MVT VT) {
   unsigned Reg = 0;
+
+ LLVM_DEBUG(dbgs() << "materializeConstant for  " << *V << "\n");
+
   if (const auto *CI = dyn_cast<ConstantInt>(V)) {
     if (CI->getValue().getActiveBits() <= 64)
       Reg = fastEmit_i(VT, VT, ISD::Constant, CI->getZExtValue());
@@ -468,6 +471,14 @@ unsigned FastISel::materializeRegForValue(const Value *V, MVT VT) {
   if (Reg) {
     LocalValueMap[V] = Reg;
     LastLocalValue = MRI.getVRegDef(Reg);
+
+//Antonio
+    if ( TM.getCodeModel() == CodeModel::Small && isa<Constant>(V)) {
+
+       const GlobalValue *GV = dyn_cast<GlobalValue>(cast<Constant>(V));
+       if (GV)
+       fastMaterializeGV(GV, VT, Reg);
+    }
   }
   return Reg;
 }
